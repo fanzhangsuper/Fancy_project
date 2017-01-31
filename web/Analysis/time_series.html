@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script src="https://d3js.org/d3.v4.js"></script>
+<!-- <script src="https://d3js.org/d3.v3.min.js"></script> -->
+
+<!-- <script src="https://d3js.org/d3-axis.v1.min.js"></script> -->
+<script type="text/javascript" src="time_country_dict.json"></script>
+
+<head>
+  <h1>How twitter information evolve overtime? ------ Interactive visualization using d3 and leaflet </h1>
+  <h3>1. How many twitters are there in a day?</h3>
+  <h4>
+    * some of the data is missing. <br> 
+    * two peaks in the dataset. (both total number of twitters and net input)
+  </h4>
+  <h3>2. How many people move across the country border in a day? (net input) And what are the countries?</h3>
+
+  <h3>3. For people who has cross border, how many of them will go back to their country?</h3>
+</head>
+
+<body>
+
+The lefthand size is a graph showing the number of twitters/net_input/per_return evolve over time. <br>
+The net_input means the the net input of people who has entered Switzerland at that day. <br>
+The per_return means among people who crossed the border, how many of them will return to their home country.<br>
+<br>
+
+The righthand side shows the information of a particular day. <br>
+For example, how many people come to Switzerland from
+France/German/...,  and what are their percentages.
+
+</body>
+
+<style type="text/css">
+.line {
+  fill: none;
+  stroke: steelblue;
+  stroke-width: 1.5px;
+}
+</style>
+
+
+<div style="width: 100%;">
+   <div style="float:left; width: 50%">
+    <h2>Number of twitters/net_input/per_return evolve over time </h2>
+   </div>
+   <div style="float:left; width: 10%" id="rightbar">
+     Country to Switzerland
+   </div>
+   <div style="float:right; width: 40%; height: 100%;" >
+     <div style="height: 50%;" id="general">
+     </div>
+     <div style="height: 50%;" id="rightdiv">
+     </div>
+   </div>
+</div>
+<div style="clear:both"></div>
+
+<script>
+
+var valid_data = function(a, k){
+  return (Object.keys(a).length == 0) ? null: a[k];
+}
+
+var date_to_key = function(d){
+  return d3.isoFormat(d).slice(0,10);
+};
+
+var margin = {top: 2, right: 10, bottom: 2, left: 10},
+    width = 800 - margin.left - margin.right,
+    height = 600 - margin.top - margin.bottom,
+    axisMargin = {left:3, right:10};
+
+// Define scale of time
+var timeScale = d3.scaleTime()
+  .domain([new Date('2012-01-01'), new Date('2015-07-01')])
+  .rangeRound([0, width]);
+
+// Create svg to host all the axes
+var distance_between_axes = 150;
+var svg = d3.select("body").select("div").select("div").append("svg")
+    .attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom);
+
+// Create 3 axes, top two of them have no ticks, the last one has time tick
+
+
+////////////////// First axis  
+// First axis: number of twitters
+
+// create dataset
+var date_x_num_tw = Object.keys(time_country_dict).map(function(key){
+  return {date: new Date(key), value: valid_data(time_country_dict[key], 'total_twitters')};
+}).sort(function(x, y){
+   return d3.ascending(x.date, y.date);
+});
+
+var dataPerPixel = date_x_num_tw.length/width;
+
+var yScale1 = d3.scaleLinear()
+    .domain([0, 140000])
+    .range([0, distance_between_axes]);
+
+var line_date_x_num_tw = d3.line()
+    .defined(function(d) { return d.value; })
+    .x(function(d) { return timeScale(d.date); })
+    .y(function(d) { 
+      return - yScale1(d.value); });
+
+svg.append("g")
+    .attr("transform", "translate(0, " + distance_between_axes + ")")
+    .call(d3.axisBottom(timeScale).ticks(0))
+    .append("path")
+    .datum(date_x_num_tw)
+    .attr("stroke", "#CDDC39")
+    .attr("d", line_date_x_num_tw);
+
+// svg.append("text")
+//     .attr("x", function(d) { return 10; })
+//     .attr("y", function(d) { return 120; })
+//     .text( function (d) { return "number of twitters"; })
+//     .attr("font-family", "sans-serif")
+//     .attr("font-size", "10px")
+//     .attr("fill", "black");
+
+
+////////////////// Second axis  
+// Second axis: net input
+var date_x_net_input = Object.keys(time_country_dict).map(function(key){
+  return {date: new Date(key), value: valid_data(time_country_dict[key],'net_input')};
+}).sort(function(x, y){
+   return d3.ascending(x.date, y.date);
+});
+// date_x_net_input = date_x_net_input.filter(function(d, i){
+//   return i % Math.ceil(dataPerPixel) == 0;
+// });
+
+var yScale2 = d3.scaleLinear();
+    // .domain([-20, 110])
+    // .range([-20, distance_between_axes]);
+
+var line_date_x_net_input = d3.line()
+    .defined(function(d) { return d.value; })
+    .x(function(d) { return timeScale(d.date); })
+    .y(function(d) { 
+      return - yScale2(d.value); });
+
+svg.append("g")
+      .attr("transform", "translate(0, " + 2*distance_between_axes + ")")
+    .call(d3.axisBottom(timeScale).ticks(0))
+    .append("path")
+      .datum(date_x_net_input)
+      .attr("stroke", "#EF5350")
+      .attr("d", line_date_x_net_input);
+
+// svg.append("text")
+//     .attr("x", function(d) { return 10; })
+//     .attr("y", function(d) { return 270; })
+//     .text( function (d) { return "net inflow"; })
+//     .attr("font-family", "sans-serif")
+//     .attr("font-size", "10px")
+//     .attr("fill", "black");
+
+////////////////// Third axis  
+// Third axis: net input
+var date_x_input_country = Object.keys(time_country_dict).map(function(key){
+  // time_country_dict[key]['portion_cycle'];
+
+  if (valid_data(time_country_dict[key], 'portion_cycle') == null){
+    return {date: new Date(key), value: null};
+  }
+
+  // if ('de' in time_country_dict[key]['to_ch']){
+  //   var c = time_country_dict[key]['to_ch']['de'];
+  // }
+  // else{
+  //   var c = 0;
+  // }
+  // console.log(time_country_dict[key]['portion_cycle'])
+  return {date: new Date(key), value: time_country_dict[key]['portion_cycle']};
+}).sort(function(x, y){
+   return d3.ascending(x.date, y.date);
+});
+
+// var yScale3 = d3.scaleLog()
+//     .base(Math.E)
+//     .domain([Math.exp(0), Math.exp(5)])
+//     .range([0, 100]);
+
+var yScale3 = d3.scaleLinear()
+    .domain([0, 1])
+    .range([0, 75]);
+
+var line_date_x_input_country = d3.line()
+    .defined(function(d) { return d.value; })
+    .x(function(d) { return timeScale(d.date); })
+    .y(function(d) { 
+      return - yScale3(d.value); });
+
+svg.append("g")
+      .attr("transform", "translate(0, " + 3 * distance_between_axes + ")")
+    .call(d3.axisBottom(timeScale).ticks(10))
+    .append("path")
+      .datum(date_x_input_country)
+      .attr("class", "line")
+      .attr("d", line_date_x_input_country);
+
+var line = svg.append("line")
+      .attr("y1", 0)
+      .attr("y2", 400)
+      .attr("stroke-width", 0)
+      .attr("stroke", "yellow");     
+
+var line1 = svg.append("line")
+      .attr("y1", 0)
+      .attr("y2", 450)
+      .attr("x1", 330)
+      .attr("x2", 330)
+      .attr("stroke-width", 1)
+      .style("stroke-dasharray", ("3, 3"))
+      .attr("stroke", "red");      
+
+var line2 = svg.append("line")
+      .attr("y1", 0)
+      .attr("y2", 450)
+      .attr("x1", 380)
+      .attr("x2", 380)
+      .attr("stroke-width", 1)
+      .style("stroke-dasharray", ("3, 3"))
+      .attr("stroke", "red");      
+
+svg.append("text")
+        .attr("x", function(d) { return 330; })
+        .attr("y", function(d) { return 225; })
+        .text( function (d) { return "missing data"; })
+        .attr("font-family", "sans-serif")
+        .attr("font-size", "10px")
+        .attr("fill", "red");
+
+// 1st annotation
+svg.append("path")
+      .datum([{x: 447, y:7}, {x: 500, y:7}, {x: 530, y: 37}])
+      .attr("fill", "none")
+      .attr("stroke", "black")
+      .attr("d", d3.line()
+        .x(function(d) { return d.x; })
+        .y(function(d) { return d.y; }))
+
+svg.append("a")
+        .attr("xlink:href", "bubbleplot.html")
+        .append("text")
+        .attr("x", function(d) { return 530; })
+        .attr("y", function(d) { return 37; })
+        .text( function (d) { return "2014-Jan-2: Berchtold Day?"; })
+        .attr("font-family", "sans-serif")
+        .attr("font-size", "10px")
+        .attr("fill", "black");
+
+// 2rd annotation
+svg.append("path")
+      .datum([{x: 432, y:43}, {x: 485, y:43}, {x: 530, y: 87}])
+      .attr("fill", "none")
+      .attr("stroke", "black")
+      .attr("d", d3.line()
+    .x(function(d) { return d.x; })
+    .y(function(d) { return d.y; }));
+
+svg.append("text")
+        .attr("x", function(d) { return 530; })
+        .attr("y", function(d) { return 87; })
+        .text( function (d) { return "2013-Dec-8: Immaculate Conception?"; })
+        .attr("font-family", "sans-serif")
+        .attr("font-size", "10px")
+        .attr("fill", "black");
+
+// Text of value of each interaction
+svg.append("text")
+    .attr("id", "text1")
+    .attr("x", function(d) { return 750; })
+    .attr("y", function(d) { return 80; })
+    .text(function (d) { return "Immaculate Conception 2013-Dec-8"; })
+      .attr("font-family", "sans-serif")
+      .attr("font-size", "0px")
+      .attr("fill", "black");
+
+svg.append("text")
+    .attr("id", "text2")
+    .attr("x", function(d) { return 750; })
+    .attr("y", function(d) { return 80 + 150; })
+    .text(function (d) { return "Immaculate Conception 2013-Dec-8"; })
+      .attr("font-family", "sans-serif")
+      .attr("font-size", "0px")
+      .attr("fill", "black");
+
+svg.append("text")
+    .attr("id", "text3")
+    .attr("x", function(d) { return 750; })
+    .attr("y", function(d) { return 80 + 150 * 2; })
+    .text(function (d) { return "Immaculate Conception 2013-Dec-8"; })
+      .attr("font-family", "sans-serif")
+      .attr("font-size", "0px")
+      .attr("fill", "black");
+
+
+///////////////////////////////////////
+var table = d3.select("#rightdiv").append('table');
+ 
+table.append("tr").selectAll("th").data(['date   ', 'num_tw   '])
+      .enter().append("th")
+      .attr("width", "100")
+      .text(function(d){return d;});
+
+table.append("tr").selectAll("td").data(["N/A", "N/A"])
+      .enter().append("td")
+      .text(function(d){return d;})
+
+table.append("tr").selectAll("th").data(['net_input   ', 'per_return   '])
+      .enter().append("th").text(function(d){return d;}).style('fill', 'red');
+
+table.append("tr").selectAll("td").data(["N/A", "N/A"])
+      .enter().append("td")
+      .text(function(d){return d;})
+
+table.append("tr").selectAll("th").data(['France            ', 'German            '])
+      .enter().append("th").text(function(d){return d;}).style('fill', 'red');
+
+table.append("tr").selectAll("td").data(["N/A", "N/A"])
+      .enter().append("td")
+      .text(function(d){return d;})
+
+table.append("tr").selectAll("td").data(["N/A", "N/A"])
+      .enter().append("td")
+      .text(function(d){return d;})
+
+var r1 = table.selectAll("tr").filter(function (d, i) { return i === 0;});
+r1.selectAll("th").filter(function (d, i) { return i === 1;}).style("color", "#CDDC39");
+
+var r2 = table.selectAll("tr").filter(function (d, i) { return i === 2;});
+r2.selectAll("th").filter(function (d, i) { return i === 0;}).style("color", "#EF5350");
+r2.selectAll("th").filter(function (d, i) { return i === 1;}).style("color", "steelblue");
+
+var update_table_values = function(date, num_tw, net_input, per_return, fr_per, de_per, fr, de){
+  var r1 = table.selectAll("tr").filter(function (d, i) { return i === 1;});
+  r1.selectAll("td").filter(function (d, i) { return i === 0;}).text(date);
+  r1.selectAll("td").filter(function (d, i) { return i === 1;}).text(num_tw);
+
+  var r2 = table.selectAll("tr").filter(function (d, i) { return i === 3;});
+  r2.selectAll("td").filter(function (d, i) { return i === 0;}).text(net_input);
+  r2.selectAll("td").filter(function (d, i) { return i === 1;}).text(per_return);
+
+  var r2 = table.selectAll("tr").filter(function (d, i) { return i === 5;});
+  r2.selectAll("td").filter(function (d, i) { return i === 0;}).text("portion = " + d3.format(".4")(fr_per));
+  r2.selectAll("td").filter(function (d, i) { return i === 1;}).text("portion = " + d3.format(".4")(de_per));
+
+  var r2 = table.selectAll("tr").filter(function (d, i) { return i === 6;});
+  r2.selectAll("td").filter(function (d, i) { return i === 0;}).text("To swiss = " + d3.format(".4")(fr));
+  r2.selectAll("td").filter(function (d, i) { return i === 1;}).text("To swiss = " + d3.format(".4")(de));
+};
+
+////////////////////////////////////////////////////////////
+var yscale_rect = d3.scaleLinear()
+    .domain([0, 1])
+    .range([450, 0]);
+
+var z = d3.scaleOrdinal()
+  .range(["#98abc5", "#8a89a6", "#7b6888", "#6b486b", "#a05d56", "#d0743c", "#ff8c00"]);
+
+var svg2 = d3.select("#rightbar").append("svg")
+    .attr("width", 400)
+    .attr("height", 550);
+
+
+var series = d3.stack().keys(['at', 'other','fr', 'de', 'it'])(
+  [{fr:0.3, it:0.4, de:0.3, at:0, other:0}]);
+
+var r2 = table.selectAll("tr").filter(function (d, i) { return i === 4;});
+r2.selectAll("th").filter(function (d, i) { return i === 0;}).style("color", z("fr"));
+r2.selectAll("th").filter(function (d, i) { return i === 1;}).style("color", z("de"));
+
+
+svg2.append("g")
+    .selectAll("g")
+    .data(series)
+    .enter().append("g")
+      .attr("fill", function(d) { 
+        return z(d.key); })
+    .selectAll("rect")
+    .data(function(d) { 
+      return d; })
+    .enter().append("rect")
+      .attr("x", function(d) { 
+        // From documentation.
+        // The input data element for each point is available as point.data
+        return 0; })
+      .attr("y", function(d) { 
+        return yscale_rect(d[1]); })
+      .attr("height", function(d) { 
+        return yscale_rect(d[0]) - yscale_rect(d[1]); })
+      .attr("width", 20);
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// svg2.append("g")
+//     .selectAll("text")
+//     .data(["France", "German", "Italian", "Austria", "Other"])
+//     .enter().append("text").text(function(d){return d;})
+//     .attr("x", function(d, i) { return 100; })
+//     .attr("y", function(d, i) { return 550 - (300 + 20 * i); })
+//     .attr("font-family", "sans-serif")
+//     .attr("font-size", "10px")
+//     .attr("fill", "black");
+
+var lines = svg2.append("g")
+    .selectAll("line")
+    .data(["France", "German", "Italian", "Austria", "Other"])
+    .enter().append("line")
+      .attr("x1", 100)
+      .attr("x2", 20)
+      .attr("y1", function(d, i) { return 550 - (300 + 20 * i);})
+      .attr("stroke-width", 0)
+      .attr("stroke", "black");
+
+var update_lines = function(y_fr, y_de, y_it, y_at, y_other){
+  var a = {France: y_fr, German:y_de, Italian:y_it, Austria:y_at, Other:y_other};
+  lines.attr("y2", function(d, i, array){ console.log(a[d]); return a[d];})  
+  lines.attr("stroke-width", function(d, i, array){return 1;})  
+};
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+var update_stacked = function(arr){
+  var series = d3.stack().keys(['fr', 'de', 'at', 'it', 'other'])([arr]); 
+  // console.log(series);
+  // 
+  var y = [0, 0, 0, 0, 0];
+  var g = svg2.select("g").selectAll("g").data(series)
+      .attr("fill", function(d) { 
+        return z(d.key); })
+    .selectAll("rect")
+    .data(function(d) { 
+      return d; })
+      .attr("x", function(d) { 
+        // From documentation.
+        // The input data element for each point is available as point.data
+        return 0; })
+      .attr("y", function(d, i) { 
+        y[i] = yscale_rect(d[1]);
+        return yscale_rect(d[1]);})
+      .attr("height", function(d) { 
+        // console.log(yscale_rect(d[0]) - yscale_rect(d[1]));
+        return yscale_rect(d[0]) - yscale_rect(d[1]); })
+      .attr("width", 20);
+
+  // update_lines(10, 20, 30, 40, 50);
+}
+
+svg.on("mousemove", function(){
+  var coords = d3.mouse(this);
+  var x = coords[0];
+  line.attr("x1", x)
+    .attr("x2", x)
+    .attr("y1", 0)
+    .attr("y2", 450)
+    .attr("stroke-width", 2)
+    .attr("stroke", "grey");
+
+  var key = date_to_key(timeScale.invert(x));
+  if (key in time_country_dict){
+    var all_countries = valid_data(time_country_dict[key], 'from_ch');
+    if (all_countries != null){
+      var total = Object.keys(all_countries).map(function(d){
+        return all_countries[d];
+      }).reduce(function(a, b){return a+b;}, 0);
+
+      var v1 = all_countries['de']/total || 0;
+      var v2 = all_countries['fr']/total || 0;
+      var v3 = all_countries['at']/total || 0;
+      var v4 = all_countries['it']/total || 0;
+      var v5 = 1 - v1 - v2 - v3 - v4;
+      v5 = v5 > 0? v5:0;
+      update_stacked({de: v1, fr:v2, at:v3, it:v4, other:v5});
+
+      // text.text("de% = " + all_countries['de']/total 
+      //   + "\n fr = " + all_countries['fr']/total
+      //   + "\n portion of cycle = " + valid_data(time_country_dict[key], 'portion_cycle'));
+
+      var date = key;
+      var num_tw = time_country_dict[key]['total_twitters'];
+      var net_input = time_country_dict[key]['net_input'];
+      var per_return = d3.format(".4")(time_country_dict[key]['portion_cycle']);
+      update_table_values(date, num_tw, net_input, per_return, v2, v1, (all_countries['fr'] || 0), (all_countries['de'] || 0));
+
+      svg.select("#text1").attr("font-size", "10px").text(num_tw).attr("x", x).attr("y", 150- yScale1(num_tw));
+      svg.select("#text2").attr("font-size", "10px").text(net_input).attr("x", x).attr("y", 300- yScale2(net_input));
+      svg.select("#text3").attr("font-size", "10px").text(per_return).attr("x", x).attr("y", 450- yScale3(per_return));
+
+
+    }
+  } else{
+      // text.text("N/A");
+  }
+});
+
+
+var  g_arc = d3.select("#general").append("div")
+                .append("svg")
+                  .attr("width", 300)
+                  .attr("height", 300)
+                .append("g")
+                  .attr("transform", "translate(" + 150 + "," + 150 + ")");;
+
+var tau = 2 * Math.PI; 
+
+var arc1 = d3.arc()
+    .innerRadius(120)
+    .outerRadius(150)
+    .startAngle(0);
+
+var arc2 = d3.arc()
+    .innerRadius(90)
+    .outerRadius(120)
+    .startAngle(0);
+
+var outer = g_arc.append("path")
+    .datum({endAngle: 0})
+    .style("fill", "#B3E5FC")
+    .attr("d", arc1);
+
+var inner = g_arc.append("path")
+    .datum({endAngle: 0})
+    .style("fill", "#0277BD")
+    .attr("d", arc2);
+
+outer.transition().duration(1000)
+      .attrTween("d", arcTween(0.836 * tau, arc1));
+
+inner.transition().duration(1000)
+      .attrTween("d", arcTween(0.05 * tau, arc2));
+
+g_arc.append("text")
+     .attr("transform", "translate(" + -100 + "," + 0 + ")")
+     .text("5% of people -> 85% twitters")
+
+function arcTween(newAngle, arc) {
+
+  // The function passed to attrTween is invoked for each selected element when
+  // the transition starts, and for each element returns the interpolator to use
+  // over the course of transition. This function is thus responsible for
+  // determining the starting angle of the transition (which is pulled from the
+  // element’s bound datum, d.endAngle), and the ending angle (simply the
+  // newAngle argument to the enclosing function).
+  return function(d) {
+
+    // To interpolate between the two angles, we use the default d3.interpolate.
+    // (Internally, this maps to d3.interpolateNumber, since both of the
+    // arguments to d3.interpolate are numbers.) The returned function takes a
+    // single argument t and returns a number between the starting angle and the
+    // ending angle. When t = 0, it returns d.endAngle; when t = 1, it returns
+    // newAngle; and for 0 < t < 1 it returns an angle in-between.
+    var interpolate = d3.interpolate(d.endAngle, newAngle);
+
+    // The return value of the attrTween is also a function: the function that
+    // we want to run for each tick of the transition. Because we used
+    // attrTween("d"), the return value of this last function will be set to the
+    // "d" attribute at every tick. (It’s also possible to use transition.tween
+    // to run arbitrary code for every tick, say if you want to set multiple
+    // attributes from a single function.) The argument t ranges from 0, at the
+    // start of the transition, to 1, at the end.
+    return function(t) {
+
+      // Calculate the current arc angle based on the transition time, t. Since
+      // the t for the transition and the t for the interpolate both range from
+      // 0 to 1, we can pass t directly to the interpolator.
+      //
+      // Note that the interpolated angle is written into the element’s bound
+      // data object! This is important: it means that if the transition were
+      // interrupted, the data bound to the element would still be consistent
+      // with its appearance. Whenever we start a new arc transition, the
+      // correct starting angle can be inferred from the data.
+      d.endAngle = interpolate(t);
+
+      // Lastly, compute the arc path given the updated data! In effect, this
+      // transition uses data-space interpolation: the data is interpolated
+      // (that is, the end angle) rather than the path string itself.
+      // Interpolating the angles in polar coordinates, rather than the raw path
+      // string, produces valid intermediate arcs during the transition.
+      return arc(d);
+    };
+  };
+}
+
+
+// var  g_arc = d3.select("body").append("div")
+//                 .append("svg")
+//                   .attr("width", 600)
+//                   .attr("height", 600)
+//                 .append("g")
+//                   .attr("transform", "translate(" + 300 + "," + 300 + ")");;
+
+// var tau = 2 * Math.PI; 
+
+// var arc = d3.arc()
+//     .innerRadius(240)
+//     .outerRadius(300)
+//     .startAngle(0);
+
+// var background = g_arc.append("path")
+//     .datum({endAngle: tau})
+//     .style("fill", "#ddd")
+//     .attr("d", arc);
+
+// // Add the foreground arc in orange, currently showing 12.7%.
+// var foreground = g_arc.append("path")
+//     .datum({endAngle: 0.127 * tau})
+//     .style("fill", "orange")
+//     .attr("d", arc);
+</script>
