@@ -22,8 +22,10 @@ We need that following data:
 |process data.ipynb| Data preprocessing for the large data|
 |text_tag.ipynb| Extract Tag from the twitter content|
 |UserPeriodicalAnalysis.ipynb| Investigate the periodical behaviof of user during a period of time|
-|web/leaf_json.html|display the general information of twitter information|
-|web/bubbleplot.html| Display the relation between hashtag and time/geo information|
+|web/Analyse/leaf_json.html|display the general information of twitter information|
+|web/Analyse/bubbleplot.html| Display the relation between hashtag and time/geo information|
+
+Note that the data from interactive data is contained under the web/ folder too. For bubbleplot.html we need to launch a local http server to load data from local directory. (Ex: python3 -m http.server 8080).
 
 
 # Feasibility and Risks
