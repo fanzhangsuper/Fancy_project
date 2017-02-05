@@ -2,7 +2,7 @@
 <meta charset="utf-8">
 
 <head>
-    <h1>Event analysis at 2014/Jan/02</h1>
+    <h1>Event Detection</h1>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.0.2/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.0.3/dist/leaflet.js"></script>
     <script src="https://d3js.org/d3.v4.min.js"></script>
@@ -35,6 +35,15 @@
 </style>
 
 <body>
+
+We will use two method to detect events. The first one uses the peak of the 
+number of people across country border to detect events (we only look at the a 
+day 2014/jan/02). The second one uses chi squared score to detect events.
+
+<h1>
+  1. Using the number of people to detect events
+</h1>
+
 <div style="width: 100%;">
    <div style="float:right; width: 50%" id="left">
    <h2>Most Frequent hashtags</h2>
@@ -62,7 +71,6 @@
 </div>
 <div style="clear:both"></div>
 
-
 <div style="width: 100%;">
    <div style="float:left; width: 50%" id="mapid">
    </div>
@@ -72,7 +80,50 @@
 </div>
 <div style="clear:both"></div>
 
+<h1>
+  2. Event Detection using chi squared score
+</h1>
 
+We use <b> chi squared score </b> to measure the trend in the twitter. 
+The formula , use E for Expectation, and O for observation<br>
+<center>
+(O-E)<sup>2</sup>/E if O > E else 0  
+</center>
+Zero division error will araise if E = 0, so we subsititude E with 1 in this case. <br>
+
+As some low frequency terms may have very large chi squared score, a threshold of 15 is used to
+filter these hashtags.
+
+<div style="width: 100%;">
+   <div style="float:left; width: 50%;">
+   <h2>
+     The location of event happened of a day
+   </h2>
+   The date can be specified in the right graph by moving your mouse onto it.
+   The left graph will show where does the event happen and what is the number 
+   of twitters containing the hashtag.
+   </div>
+   <div style="float:right; width: 50%;">
+   <h2>
+     The time series of events detected. 
+   </h2>
+   Move your mouse onto the graph to get 
+     information of a day. The name of hashtag is listed under the 
+     axis. The magnitude of the chi squared value of the hash tags is near the mouse.
+
+     Notice that the radius of right hand side graph is the number of twitters, 
+     not the chi squared values, so they may not positively related.
+   </div>
+</div>
+<div style="clear:both"></div>
+
+<div style="width: 100%;">
+   <div style="float:left; width: 50%;height: 800px;" id="mapid2">
+   </div>
+   <div style="float:right; width: 50%; height: 800px" id="right2">
+   </div>
+</div>
+<div style="clear:both"></div>
 
 <script type="text/javascript">
 cantons = ['Aargau', 'Appenzell Ausserrhoden', 'Appenzell Innerrhoden', 'Basel-Landschaft',
@@ -84,11 +135,15 @@ cantons = ['Aargau', 'Appenzell Ausserrhoden', 'Appenzell Innerrhoden', 'Basel-L
 ];
 
 var mymap = L.map('mapid', { zoomControl:false, dragging:false, doubleClickZoom:false}).setView([47, 8.25], 8);
-
+var mymap2 = L.map('mapid2', { zoomControl:false, dragging:false, doubleClickZoom:false}).setView([47, 8.25], 8);
 
 L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', {
     attribution: '© <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
 }).addTo(mymap);
+
+L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', {
+    attribution: '© <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
+}).addTo(mymap2);
 
 function convert_geometrycollection_to_feature_collection(geo) {
     var geoJson1 = {};
@@ -108,7 +163,6 @@ function convert_geometrycollection_to_feature_collection(geo) {
 }
 
 function style(feature) {
-    // console.log('style' + feature.id)    
     return {
         fillColor: "blue",
         weight: 2,
@@ -126,20 +180,11 @@ var geoJson = L.geoJson(swiss1, {
     // onEachFeature: onEachFeature_swiss
 }).addTo(mymap);
 
+var geoJson2 = L.geoJson(swiss1, {
+    style: style,
+}).addTo(mymap2);
 
 var scale = 50;
-
-// Add scale to map
-// for (var i in [1,2,3,4,5]){
-//     L.circle([45.7, 9.3 + i/5], {
-//         fillColor: 'red',
-//         fillOpacity: 1,
-//         stroke:false,
-//         radius: scale * (i)
-//       }).addTo(mymap);
-// }
-
-
 
 var radialLineGenerator = d3.radialLine().curve(d3.curveCatmullRom.alpha(0.5));
 
@@ -326,7 +371,7 @@ d3.csv("tw_tags.csv", function(d){
         return d;
     }, function(error, data) {
   if (error) throw error;
-  console.log(data);
+  // console.log(data);
 
   var tag   = '#newyearrocks';
 
@@ -340,10 +385,6 @@ d3.csv("tw_tags.csv", function(d){
 
       update_radial(points);
     }
-
-  // var c = svg.select("g");
-  // console.log(c);
-  // c.style("stroke", "red");
 
   // Add circle to each location for a tag
   data.forEach(function(currentValue, index, array) {
@@ -375,6 +416,121 @@ d3.csv("tw_tags.csv", function(d){
     })
     i = i + 1;
   }, 800);
+
+});
+
+// Define scale of time
+var timeScale = d3.scaleTime()
+  .domain([new Date('2014-12-28'), new Date('2016-10-01')])
+  .rangeRound([0, 600]);
+
+var svg2 = d3.select("#right2").append("svg").attr("width", 800)
+              .attr("height", 500);
+
+// console.log("width = ", d3.select("#right2").attr("width"))
+
+var axis = svg2.append("g")
+    .attr("transform", "translate(10, " + 400 + ")")
+    .call(d3.axisBottom(timeScale).ticks(10))
+    // .append("path")
+    // .datum(date_x_num_tw)
+    // .attr("stroke", "#CDDC39")
+    // .attr("d", line_date_x_num_tw);
+var event_text = svg2.append("text")
+        .attr("x", function(d) { return 330; })
+        .attr("y", function(d) { return 465; })
+        .text( function (d) { return "missing data"; })
+        .attr("font-family", "sans-serif")
+        .attr("font-size", "20px")
+        .attr("fill", "red");
+
+var date_text = svg2.append("text")
+        .attr("x", function(d) { return 330; })
+        .attr("y", function(d) { return 435; })
+        .text( function (d) { return "missing data"; })
+        .attr("font-family", "sans-serif")
+        .attr("font-size", "0px")
+        .attr("fill", "red");
+
+var chi_text = svg2.append("text")
+        .attr("x", function(d) { return 330; })
+        .attr("y", function(d) { return 450; })
+        .text( function (d) { return "missing data"; })
+        .attr("font-family", "sans-serif")
+        .attr("font-size", "0px")
+        .attr("fill", "red");
+
+svg2.append('text')
+        .attr("x", function(d) { return 50; })
+        .attr("y", function(d) { return 50; })
+        .text( function (d) { return "Chi Squared score of the most frequent tag of each day"; })
+        .attr("font-family", "sans-serif")
+        .attr("font-size", "20px")
+        .attr("fill", "black");
+
+d3.csv("event_detection.csv", function(d){
+    return {date:new Date(d.date), value:+d.place_value, 
+      lat:+d.placeLatitude, lon:+d.placeLongitude, topic:d.topic, chi_squared:+d.chi_squared};
+    }, function(error, data) {
+  if (error) throw error;
+  // Add circle to each location for a tag
+  data.forEach(function(currentValue, index, array) {
+    currentValue.circle = L.circle([currentValue.lat, currentValue.lon], {
+        color: 'red',
+        fillColor: '#f03',
+        fillOpacity: 0.5,
+        stroke:false,
+        radius: 0
+      }).addTo(mymap2);
+  });  
+
+  var date_to_key = function(d){
+    return d3.isoFormat(d).slice(0,10);
+  };
+
+  // console.log(d3.max(data, function(d){return d.chi_squared;}))
+  var chi_squared = data.map(function(x){return {date:x.date, value:x.chi_squared}});
+  data.forEach(function(currentValue, index, array){
+      currentValue.key = date_to_key(currentValue.date);
+  });
+  var dates = data.map(function(x){return x.key;});
+
+  var yScale1 = d3.scaleLinear()
+      .domain([0, 1000000000])
+      .range([0, 500]);
+
+  var line = d3.line()
+      .x(function(d) { 
+        return timeScale(d.date); })
+      .y(function(d) { 
+        return - yScale1(d.value); });
+
+  axis.append("path")
+      .datum(chi_squared)
+      .attr("stroke", "steelblue")
+      .attr("stroke-width", "1.5px")
+      .attr("d", line);
+
+  var timer = d3.interval(function(){}, 1000000000);
+
+  svg2.on("mousemove", function(){
+    var coords = d3.mouse(this);
+    var x = coords[0] - 10;
+    var date_key = date_to_key(timeScale.invert(x));
+    var date_index = dates.indexOf(date_key);
+
+    if (date_index != -1){
+      data.forEach(function(currentValue, index, array){
+        candidate = (index == date_index) ? currentValue.value * scale: 0;
+        currentValue.circle.setRadius(candidate);
+      });
+      date_text.text(data[date_index].key).attr("x", 10 + timeScale(data[date_index].date))
+            .attr("font-size", "20px");
+      event_text.text(data[date_index].topic).attr("x", 10 + timeScale(data[date_index].date));
+      chi_text.text(d3.format(".4s")(data[date_index].chi_squared)).attr("x", 15 + timeScale(data[date_index].date))
+        .attr("y", coords[1]).attr("font-size", "10px")
+    }
+  });
 
 });
 </script>
