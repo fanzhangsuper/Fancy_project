@@ -16,6 +16,7 @@ We need that following data:
 | filename | functionality|
 |:---:|:----:|
 |AnalysePeopleCrossBorder.ipynb| Compute and store the number of people across border|
+|EventDetection.ipynb| Detect the events happend during each period of time|
 |GenerateData.ipynb| Preprocess data and extract useful information|
 |HashtagPostprocessing.ipynb| Investigate the relation between hashtag and time/Location|
 |Leaf_json data.ipynb| Generate data for leaflet plotting|
@@ -53,9 +54,9 @@ Three webpages are delivered.Each function and conclusions are shown below:
 - Conclusion: The missing values and non uniform twitter sampling makes the dataset more biased. We need to pay attention to the details if we need use its information.
 
 ## bubbleplot.html: 
-- Function: in bubbleplot.html:  we look into Day 2014/Jan/2 and find the most tags is `#newyearrocks`. The distribution of the data is presented in a bubble plot with changes overtime. The evolution of number of `#newyearrocks` in each place is also presented as an orbit in an aster plot.
+- Function: in bubbleplot.html:  we look into Day 2014/Jan/2 and find the most tags is `#newyearrocks`. The distribution of the data is presented in a bubble plot with changes overtime. The evolution of number of `#newyearrocks` in each place is also presented as an orbit in an aster plot. 
 
-- Conclusion: Apart from big cities like Geneva, Lucerne, we also observe small cities have large `#newyearrocks` number. We may guess that there are some events happen to those area.
+Further, we detect events using chi-squared score. Events with largest chi-squared score is presented for each day.
  
 ## Relative packet and library:
 - D3;  
